@@ -9,7 +9,8 @@
 // Needs Node >= 22 and google-chrome (or set CHROME=/path/to/chrome). Works for any game built on
 // the standard skeleton: #btnStart, #options .opt, #sheet, #btnNext, #statScore, #btnAgain,
 // #btnQuit, #btnSound, #mascot, body[data-screen=start|quiz|end]; optional #btnLearn → learn screen
-// with .tile buttons and #btnBack.
+// with .tile buttons and #btnBack; optional typed answers: #keypad [data-key] (digits, "ok") + #answerBox
+// (.correct / .wrong after submit). Learn tiles must play a sound only if <body data-learn-sound>.
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -164,8 +165,12 @@ for (const [W, H] of SIZES) {
     await sleep(900);
     const after = await snd();
     const active = await ev(`[...document.querySelectorAll('.tile')].findIndex((t) => t.classList.contains('active'))`);
-    check('learn: tap tile → it becomes active and a sound plays', active === Math.min(7, tiles) - 1 && after.clip + after.speech > before.clip + before.speech,
+    const needSound = await ev(`document.body.hasAttribute('data-learn-sound')`);
+    const played = after.clip + after.speech > before.clip + before.speech;
+    check(`learn: tap tile → it becomes active${needSound ? ' and a sound plays' : ''}`, active === Math.min(7, tiles) - 1 && (played || !needSound),
       `active=${active}, sounds ${JSON.stringify(before)} → ${JSON.stringify(after)}`);
+    const learnFit = await fits();
+    check(`learn screen fits the height (zoom ${(+learnFit.k).toFixed(2)})`, learnFit.ok, `${learnFit.sh}>${learnFit.ih}`);
     await tapSel('#btnBack');
     await sleep(600);
     check('learn: tap back → start', (await screen()) === 'start');
@@ -182,7 +187,36 @@ for (const [W, H] of SIZES) {
   let silent = 0;
   let overflow = [];
   let kq = '1';
+  let typedQs = 0;
   while ((await screen()) === 'quiz' && q < 40) {
+    if (await ev(`!!document.querySelector('#keypad:not([hidden])')`)) {
+      // typed answer: tap two digits and ✓ on the on-screen keypad
+      typedQs++;
+      const s0 = await snd();
+      for (const k of [String(1 + (q % 9)), String(q % 10), 'ok']) {
+        await tapSel(`#keypad [data-key="${k}"]`);
+        await sleep(120);
+      }
+      await sleep(800);
+      if ((await snd()).fx <= s0.fx) silent++;
+      const f = await fits();
+      if (!f.ok) overflow.push(`q${q + 1}: ${f.sh}>${f.ih} (k=${f.k})`);
+      const r = await ev(`(() => {
+        const box = document.querySelector('#answerBox');
+        const sheet = document.querySelector('#sheet');
+        const rb = box.getBoundingClientRect();
+        return { box: box.className, text: box.textContent, mascot: document.querySelector('#mascot').getAttribute('class'),
+          shown: sheet.classList.contains('show'), visible: rb.top >= 0 && rb.bottom <= sheet.getBoundingClientRect().top };
+      })()`);
+      const right = r.box.includes('correct');
+      const ok = r.shown && r.visible && r.text === `${1 + (q % 9)}${q % 10}`
+        && (right ? r.mascot.includes('is-happy') : r.box.includes('wrong') && r.mascot.includes('is-sad'));
+      if (!ok) bad.push(`q${q + 1} typed: ${JSON.stringify(r)}`);
+      await tapSel('#btnNext');
+      await sleep(700);
+      q++;
+      continue;
+    }
     const n = await ev(`document.querySelectorAll('#options .opt').length`);
     const bgs = await ev(`[...document.querySelectorAll('#options .opt')].map((b) => getComputedStyle(b).backgroundColor)`);
     if (bgs.some((c) => c !== bgs[0])) sticky++;
@@ -209,7 +243,7 @@ for (const [W, H] of SIZES) {
     await sleep(700);
     q++;
   }
-  check(`${q} questions: mascot happy/sad, sheet shown, right option visible above sheet`, bad.length === 0, bad.join(' ; '));
+  check(`${q} questions${typedQs ? ` (${typedQs} typed on the keypad)` : ''}: mascot happy/sad, sheet shown, answer visible above sheet`, bad.length === 0, bad.join(' ; '));
   check('no sticky :hover between questions', sticky === 0, `${sticky}`);
   check('every answer tap plays a sound effect', silent === 0, `${silent} silent answers`);
   check(`quiz + answer sheet fit the screen height (zoom ${(+kq).toFixed(2)})`, overflow.length === 0, overflow.join(' ; '));

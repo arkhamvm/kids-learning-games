@@ -9,6 +9,9 @@ behaviour; change only the content and, if needed, the mechanic.
 - `games/sinonimy/index.html` — «Слова-друзья», synonym quiz (2 класс): the basic quiz skeleton.
 - `games/alphabet/index.html` — «Английский алфавит» (2 класс): a learn screen (cards + grid) before
   the quiz, several question types, pronunciation (device voice + embedded clips), Russian transcription.
+- `games/ustnyj-schet/index.html` — «Устный счёт» (2–3 класс): two modes on the start screen, generated
+  questions (no fixed bank), typed answers on an on-screen keypad, step-by-step hints after mistakes,
+  a reference table with «Скрыть ответы».
 
 **Mascot template:** `templates/mascot.html` — котёнок Рыжик. Every game uses it unchanged (see below).
 
@@ -37,19 +40,29 @@ README.md                   list of games — add a row for every new game
 - **Favicon** = the mascot's face (data-URI SVG, copy the `<link rel="icon">` from `templates/mascot.html`).
 - **Russian UI**, child-friendly and short. Address the child in gender-neutral forms
   («твой ответ», «Молодец!», «Умница!»), never «ты выбрал/выбрала».
-- **Content matches the requested grade.** Content bank is hand-written inside the file
-  (no API, no generation at runtime). Review every item: each distractor must be unambiguously wrong
-  (no accidental synonyms / second correct answers). Aim for 60–80 items, 10 per round, next round
-  prefers items not seen yet.
+- **Content matches the requested grade.** Word/fact banks are hand-written inside the file (no API).
+  Review every item: each distractor must be unambiguously wrong (no accidental synonyms / second correct
+  answers). Aim for 60–80 items, 10 per round, next round prefers items not seen yet. Arithmetic is
+  generated at runtime instead — then wrong options model typical slips (±10 lost carry, ±1, swapped
+  digits, wrong sign, neighbouring products), and you must validate the generator by playing a few
+  hundred questions in the browser and recomputing every answer from the text on screen.
+- **Typed answers** (when a task asks the child to write the answer): an on-screen keypad, never the
+  system keyboard (it would cover half the screen and break the fit). Two rows `1 2 3 4 5 ⌫ / 6 7 8 9 0 ✓`
+  — no taller than the 4 answer options; keys `tabIndex = -1` + `mousedown` preventDefault so Enter on a
+  physical keyboard always submits; digits / Backspace / Enter work too. The answer appears in a box
+  inside the expression (`#answerBox`, dashed + blinking while typing, green or red struck-through after).
 - **Every screen fits the screen height — no scrolling in the quiz.** `fit()` scales the whole page with
   CSS `zoom` = available height / natural height of the active screen (`--k` on `<html>`;
   `.app, .sheet { zoom: var(--k) }`, `.app { min-height: calc(100dvh / var(--k)) }`). Per-screen limits
   `FIT = { start: [0.7, 1.4], learn: [0.7, 1.3], quiz: [0.6, 1.4], end: [0.8, 1.3] }`, also capped by
   `innerWidth / 360` so phones don't get narrower than 360 CSS px. Short phones shrink, tablets and
   desktops grow (up to ×1.4). The quiz reserves the feedback sheet's height as bottom padding, so the
-  sheet never covers answers; during a round the zoom only shrinks (no size jumps between questions).
-  Call `fit()` on every screen change, after rendering a question (`fit(true)` — locks the round's
-  zoom), after filling results, on `resize` and on `document.fonts.ready`. Copy `fit()` from a reference game.
+  sheet never covers answers. `fit(true)` locks the zoom for the current visit of a screen (`lockedK`):
+  later content changes may only shrink it — no size jumps between questions or letters. Call `fit()` on
+  every screen change, `fit(true)` after rendering a question / whenever a learn screen's content
+  changes, `fit()` after filling results, on `resize` (clears the locks) and on `document.fonts.ready`;
+  `delete lockedK.quiz` when a round starts. Keep rows whose text varies (speech bubble next to a small
+  mascot) at a fixed `min-height`. Copy `fit()` from a reference game.
   The results screen may scroll (the review list), nothing else should.
 - **Phones first — kids play by tapping**, not with a mouse:
   - works at 360–390 px, 16 px side gutter, no horizontal scroll; answers 2×2 (also on phones —
@@ -79,7 +92,11 @@ per-screen mascot slot + speech bubble; `#btnStart`, `#options .opt` (answer but
 (with `confirm()`), `#btnSound` (`aria-pressed`), `#progress`, `#streakNum`, `#mascot`.
 The sheet sits inside `.sheet-dock` (fixed, `overflow: hidden`, `pointer-events: none`).
 Optional learn screen: `#btnLearn` on the start screen → `#screenLearn` (`body[data-screen=learn]`) with
-`.tile` buttons (tap = select + play sound) and `#btnBack`; the touch test exercises it when present.
+`.tile` buttons and `#btnBack`; the touch test exercises it when present (and requires a sound on tile tap
+when `<body data-learn-sound>` is set). Optional typed answers: `#keypad [data-key]` (digits, `del`, `ok`)
++ `#answerBox` with `.correct` / `.wrong`; the touch test types on the keypad when it is visible.
+Feedback sheet text: `#sheetTitle`, `#sheetSub`, optional `#sheetHint` (how to solve it, after mistakes);
+the text column is `flex: 1; min-width: 0` so long hints wrap instead of pushing «Дальше» off screen.
 
 ## Look & feel (Duolingo-like)
 

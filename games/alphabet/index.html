@@ -98,7 +98,7 @@
   /* ---------- learn ---------- */
   .learn { padding-bottom: 24px; }
   .learn .mascot-slot--quiz { width: 84px; }
-  .learn .q-head { margin-top: 0; }
+  .learn .q-head { margin-top: 0; min-height: 100px; } /* bubble text varies 1–3 lines: keep the layout still */
   .learn-top { display: flex; align-items: center; justify-content: space-between; margin-top: -4px; }
   .learn-progress { font-size: 15px; font-weight: 800; color: var(--muted); }
   .lcard {
@@ -120,7 +120,7 @@
   #btnPrev { left: 8px; }
   #btnNextLetter { right: 8px; }
   .lword {
-    display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 8px 14px;
+    display: flex; align-items: center; gap: 12px; width: calc(100% + 84px); margin: 12px -42px 0; padding: 8px 14px;
     background: var(--soft); border: 0; border-radius: 16px; text-align: left;
   }
   .lword .emoji { font-size: 40px; }
@@ -224,7 +224,8 @@
   .sheet-title { font-size: 22px; font-weight: 900; color: var(--green-t); }
   .sheet-sub { margin-top: 2px; font-size: 17px; font-weight: 800; color: var(--green-t); }
   .sheet.bad .sheet-title, .sheet.bad .sheet-sub { color: var(--red-t); }
-  .sheet .btn { margin-left: auto; min-width: 150px; }
+  .sheet-inner > [role="status"] { flex: 1; min-width: 0; } /* long text wraps, never pushes the button out */
+  .sheet .btn { margin-left: auto; min-width: 150px; flex: none; }
 
   /* ---------- results ---------- */
   .stars { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 84px; }
@@ -392,7 +393,7 @@
   }
 </style>
 </head>
-<body data-screen="start">
+<body data-screen="start" data-learn-sound>
 
 <div class="app">
   <header class="topbar">
@@ -1082,7 +1083,7 @@ const CLIPS = {"letters":{"A":"//NAxAAPaU6wJ0MQABjbh3d/REd9AgAACCRP/iHOc55zu2hCN
   // ---------- масштаб под высоту экрана ----------
   // zoom = доступная высота / естественная высота экрана, в пределах [min, max] для каждого экрана.
   const FIT = { start: [0.7, 1.4], learn: [0.7, 1.3], quiz: [0.6, 1.4], end: [0.8, 1.3] };
-  let quizK = null; // during a round the quiz only shrinks — no size jumps between questions
+  const lockedK = {}; // screen → zoom for the current visit: content changes may only shrink it (no size jumps)
   function sheetHeight() {
     const t = $('#sheetTitle');
     const s = $('#sheetSub');
@@ -1092,7 +1093,7 @@ const CLIPS = {"letters":{"A":"//NAxAAPaU6wJ0MQABjbh3d/REd9AgAACCRP/iHOc55zu2hCN
     if (empty) { t.textContent = ''; s.textContent = ''; }
     return h;
   }
-  function fit(lockQuiz) {
+  function fit(lock) {
     const scr = screens[current];
     const [minK, maxK] = FIT[current];
     const root = document.documentElement.style;
@@ -1102,16 +1103,16 @@ const CLIPS = {"letters":{"A":"//NAxAAPaU6wJ0MQABjbh3d/REd9AgAACCRP/iHOc55zu2hCN
     const natural = $('.topbar').offsetHeight + scr.offsetHeight;
     scr.classList.remove('measuring');
     let k = Math.max(minK, Math.min(maxK, innerWidth / 360, innerHeight / natural));
-    if (current === 'quiz' && lockQuiz) {
-      if (quizK) k = Math.min(k, quizK);
-      quizK = k;
+    if (lock) {
+      if (lockedK[current]) k = Math.min(k, lockedK[current]);
+      lockedK[current] = k;
     }
     root.setProperty('--k', k.toFixed(3));
   }
   let fitTimer = 0;
   addEventListener('resize', () => {
     clearTimeout(fitTimer);
-    fitTimer = setTimeout(() => { quizK = null; fit(true); }, 120);
+    fitTimer = setTimeout(() => { Object.keys(lockedK).forEach((s) => delete lockedK[s]); fit(true); }, 120);
   });
   if (document.fonts) document.fonts.ready.then(() => fit());
 
@@ -1180,12 +1181,13 @@ const CLIPS = {"letters":{"A":"//NAxAAPaU6wJ0MQABjbh3d/REd9AgAACCRP/iHOc55zu2hCN
     } else {
       Mascot.say(x.L === 'X' ? `${x.L} — [${x.name}]. Слышно в конце слова ${x.word}!` : `${x.L} — [${x.name}]. Как в слове ${x.word}!`);
     }
+    if (current === 'learn') fit(true);
     if (speak) Voice.letter(x.L, $('#btnLetterSound'));
   }
 
   function openLearn() {
+    delete lockedK.learn;
     show('learn');
-    Mascot.hello('Нажимай на буквы — я их назову!');
     renderLetter(li, false);
     Mascot.hello('Нажимай на буквы — я их назову!');
   }
@@ -1272,7 +1274,7 @@ const CLIPS = {"letters":{"A":"//NAxAAPaU6wJ0MQABjbh3d/REd9AgAACCRP/iHOc55zu2hCN
   }
 
   function startGame() {
-    quizK = null;
+    delete lockedK.quiz;
     questions = buildRound();
     qi = 0; score = 0; streak = 0; best = 0; mistakes = [];
     updateStreak(false);
