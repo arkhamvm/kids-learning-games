@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 // Plays one round of a game with real touch taps (headless Chrome + CDP Input.dispatchTouchEvent)
-// on two phone sizes and checks the mascot reactions, the feedback sheet, results and navigation.
+// on two phone sizes and a desktop window. Checks the mascot reactions, the feedback sheet, that
+// taps produce sound, that the quiz fits the screen height (no vertical scroll), results and
+// navigation, and — if the game has one (#btnLearn) — the learning screen.
 //
 //   node scripts/touch-test.mjs games/sinonimy/
 //
 // Needs Node >= 22 and google-chrome (or set CHROME=/path/to/chrome). Works for any game built on
 // the standard skeleton: #btnStart, #options .opt, #sheet, #btnNext, #statScore, #btnAgain,
-// #btnQuit, #btnSound, #mascot, body[data-screen=start|quiz|end].
+// #btnQuit, #btnSound, #mascot, body[data-screen=start|quiz|end]; optional #btnLearn → learn screen
+// with .tile buttons and #btnBack.
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -16,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = (process.argv[2] || 'games/sinonimy/').replace(/^\/+/, '');
-const SIZES = [[390, 844], [360, 640]];
+const SIZES = [[390, 844], [360, 640], [1280, 900]];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const srv = http.createServer((req, res) => {
@@ -91,6 +94,10 @@ async function tapSel(sel) {
   await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 const screen = () => ev('document.body.dataset.screen');
+const snd = () => ev('({ ...__snd })');
+const fits = () => ev(`({ ok: document.documentElement.scrollHeight <= innerHeight + 2,
+  sh: document.documentElement.scrollHeight, ih: innerHeight,
+  k: getComputedStyle(document.documentElement).getPropertyValue('--k') || '1' })`);
 const mascot = () => ev(`document.querySelector('#mascot').getAttribute('class')`);
 const noHScroll = () => ev('document.documentElement.scrollWidth <= innerWidth');
 
@@ -102,6 +109,16 @@ await send('Page.addScriptToEvaluateOnNewDocument', { source: `
   window.__ev = [];
   for (const t of ['touchstart', 'pointerdown', 'click'])
     addEventListener(t, (e) => __ev.push(t + ':' + (e.pointerType || '')), true);
+  // count sounds that actually start: synthesized effects, decoded clips, speech
+  window.__snd = { fx: 0, clip: 0, speech: 0 };
+  const osc = OscillatorNode.prototype.start;
+  OscillatorNode.prototype.start = function (...a) { __snd.fx++; return osc.apply(this, a); };
+  const buf = AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start = function (...a) { __snd.clip++; return buf.apply(this, a); };
+  if (window.speechSynthesis) {
+    const speak = speechSynthesis.speak.bind(speechSynthesis);
+    speechSynthesis.speak = (u) => { __snd.speech++; return speak(u); };
+  }
 ` });
 
 let failed = false;
@@ -137,6 +154,23 @@ for (const [W, H] of SIZES) {
   const evs = await ev('__ev.slice()');
   check('taps arrive as touch → click', evs.includes('pointerdown:touch') && evs.includes('click:touch'), [...new Set(evs)].join(', '));
 
+  if (await ev(`!!document.querySelector('#btnLearn')`)) {
+    await tapSel('#btnLearn');
+    await sleep(700);
+    check('learn: tap «learn» → learn screen', (await screen()) === 'learn');
+    const before = await snd();
+    const tiles = await ev(`document.querySelectorAll('.tile').length`);
+    await tapSel(`.tile:nth-child(${Math.min(7, tiles)})`);
+    await sleep(900);
+    const after = await snd();
+    const active = await ev(`[...document.querySelectorAll('.tile')].findIndex((t) => t.classList.contains('active'))`);
+    check('learn: tap tile → it becomes active and a sound plays', active === Math.min(7, tiles) - 1 && after.clip + after.speech > before.clip + before.speech,
+      `active=${active}, sounds ${JSON.stringify(before)} → ${JSON.stringify(after)}`);
+    await tapSel('#btnBack');
+    await sleep(600);
+    check('learn: tap back → start', (await screen()) === 'start');
+  }
+
   await tapSel('#btnStart');
   await sleep(800);
   check('tap start → quiz', (await screen()) === 'quiz');
@@ -145,13 +179,21 @@ for (const [W, H] of SIZES) {
   let q = 0;
   let bad = [];
   let sticky = 0;
+  let silent = 0;
+  let overflow = [];
+  let kq = '1';
   while ((await screen()) === 'quiz' && q < 40) {
     const n = await ev(`document.querySelectorAll('#options .opt').length`);
     const bgs = await ev(`[...document.querySelectorAll('#options .opt')].map((b) => getComputedStyle(b).backgroundColor)`);
     if (bgs.some((c) => c !== bgs[0])) sticky++;
     const pick = (q * 3) % n;
+    const s0 = await snd();
     await tapSel(`#options .opt:nth-child(${pick + 1})`);
     await sleep(900);
+    if ((await snd()).fx <= s0.fx) silent++;
+    const f = await fits();
+    if (q === 0) kq = f.k;
+    if (!f.ok) overflow.push(`q${q + 1}: ${f.sh}>${f.ih} (k=${f.k})`);
     const r = await ev(`(() => {
       const btns = [...document.querySelectorAll('#options .opt')];
       const right = btns.findIndex((b) => b.classList.contains('correct'));
@@ -169,6 +211,8 @@ for (const [W, H] of SIZES) {
   }
   check(`${q} questions: mascot happy/sad, sheet shown, right option visible above sheet`, bad.length === 0, bad.join(' ; '));
   check('no sticky :hover between questions', sticky === 0, `${sticky}`);
+  check('every answer tap plays a sound effect', silent === 0, `${silent} silent answers`);
+  check(`quiz + answer sheet fit the screen height (zoom ${(+kq).toFixed(2)})`, overflow.length === 0, overflow.join(' ; '));
 
   const end = await ev(`({ screen: document.body.dataset.screen, score: document.querySelector('#statScore').textContent,
     mascot: document.querySelector('#mascot').getAttribute('class') })`);

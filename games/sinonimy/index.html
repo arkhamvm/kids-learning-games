@@ -33,6 +33,10 @@
   [hidden] { display: none !important; }
 
   .app { max-width: 680px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding: 0 16px; }
+  /* fit to screen height: fit() sets --k per screen (zoom < 1 on short screens, > 1 on tall ones) */
+  .app, .sheet { zoom: var(--k, 1); }
+  .app { min-height: calc(100dvh / var(--k, 1)); }
+  .screen.measuring { flex: none; }
   main { flex: 1; display: flex; flex-direction: column; }
 
   /* ---------- top bar ---------- */
@@ -53,7 +57,7 @@
   /* ---------- screens ---------- */
   .screen { display: none; flex: 1; flex-direction: column; }
   .screen.active { display: flex; animation: screenIn .35s ease both; }
-  @keyframes screenIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } } /* from above: never adds scroll height */
 
   /* ---------- buttons ---------- */
   .btn {
@@ -83,7 +87,7 @@
   .hint { margin: 2px 0 0; font-size: 14px; color: var(--faint); }
 
   /* ---------- quiz ---------- */
-  .quiz { padding-bottom: 190px; }
+  .quiz { padding-bottom: 120px; } /* fit() sets it to the feedback sheet's height */
   .q-head { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
   .mascot-slot--quiz { width: 124px; flex: none; }
   .q-head .bubble { flex: 1; max-width: 340px; }
@@ -106,7 +110,7 @@
   .opt {
     display: flex; align-items: center; gap: 12px; min-height: 70px; padding: 12px 16px;
     background: #fff; border: 2px solid var(--line); border-bottom-width: 5px; border-radius: 16px;
-    text-align: left; font-size: 21px; font-weight: 800; color: var(--ink-2);
+    text-align: left; font-size: 21px; font-weight: 800; color: var(--ink-2); hyphens: auto; overflow-wrap: break-word;
     transition: background .15s, border-color .15s, color .15s, opacity .25s, transform .08s;
     animation: optIn .3s ease backwards; animation-delay: calc(var(--i) * 55ms);
   }
@@ -131,8 +135,10 @@
   @keyframes bump { 0% { transform: scale(1); } 50% { transform: scale(1.35); } 100% { transform: scale(1); } }
 
   /* ---------- feedback sheet ---------- */
+  /* the dock clips the parked sheet so it never adds scroll height */
+  .sheet-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; overflow: hidden; pointer-events: none; }
   .sheet {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    position: relative; pointer-events: auto;
     background: var(--green-l); transform: translateY(105%); visibility: hidden;
     transition: transform .3s cubic-bezier(.2, .9, .3, 1.1), visibility 0s .3s;
   }
@@ -281,16 +287,20 @@
   /* ===== MASCOT:CSS END ===== */
 
   @media (max-width: 460px) {
-    .options { grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
-    .opt { min-height: 58px; font-size: 20px; }
+    .options { gap: 10px; margin-top: 16px; }
+    .opt { min-height: 62px; font-size: 19px; padding: 10px 12px; }
     .mascot-slot--quiz { width: 100px; }
     .q-head .bubble { font-size: 16px; padding: 10px 14px; }
-    .sheet-inner { flex-wrap: wrap; padding-top: 16px; }
-    .sheet-icon { width: 46px; height: 46px; }
-    .sheet-icon svg { width: 28px; height: 28px; }
-    .sheet .btn { width: 100%; margin-left: 0; }
-    .quiz { padding-bottom: 210px; }
+    .sheet-inner { gap: 10px; padding: 14px 14px calc(14px + env(safe-area-inset-bottom)); }
+    .sheet-icon { width: 40px; height: 40px; }
+    .sheet-icon svg { width: 24px; height: 24px; }
+    .sheet-title { font-size: 18px; }
+    .sheet-sub { font-size: 15px; }
+    .sheet .btn { min-width: 0; padding: 12px 16px; font-size: 15px; }
     .stat-label { font-size: 10px; }
+  }
+  @media (pointer: coarse) {
+    .opt-key { display: none; } /* keyboard hints are useless on touch screens */
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -475,14 +485,16 @@
   </main>
 </div>
 
-<div class="sheet" id="sheet" aria-hidden="true">
-  <div class="sheet-inner">
-    <div class="sheet-icon" id="sheetIcon"></div>
-    <div role="status" aria-live="polite">
-      <div class="sheet-title" id="sheetTitle"></div>
-      <div class="sheet-sub" id="sheetSub"></div>
+<div class="sheet-dock">
+  <div class="sheet" id="sheet" aria-hidden="true">
+    <div class="sheet-inner">
+      <div class="sheet-icon" id="sheetIcon"></div>
+      <div role="status" aria-live="polite">
+        <div class="sheet-title" id="sheetTitle"></div>
+        <div class="sheet-sub" id="sheetSub"></div>
+      </div>
+      <button class="btn" id="btnNext" type="button">Дальше</button>
     </div>
-    <button class="btn" id="btnNext" type="button">Дальше</button>
   </div>
 </div>
 
@@ -739,7 +751,7 @@ const Mascot = (() => {
   }
 
   return {
-    el, phrases, pick, mount, set, say, sfx, burst, rain,
+    el, phrases, pick, mount, set, say, sfx, burst, rain, audio,
     hello, question, correct, wrong, finish,
     get sound() { return soundOn; },
     set sound(on) {
@@ -896,8 +908,45 @@ const Mascot = (() => {
     Object.entries(screens).forEach(([k, el]) => el.classList.toggle('active', k === name));
     document.body.dataset.screen = name;
     Mascot.mount(slots[name], bubbles[name]);
+    fit();
     window.scrollTo(0, 0);
   }
+
+  // ---------- масштаб под высоту экрана ----------
+  // zoom = доступная высота / естественная высота экрана, в пределах [min, max] для каждого экрана.
+  const FIT = { start: [0.7, 1.4], quiz: [0.6, 1.4], end: [0.8, 1.3] };
+  let quizK = null; // during a round the quiz only shrinks — no size jumps between questions
+  function sheetHeight() {
+    const t = $('#sheetTitle');
+    const s = $('#sheetSub');
+    const empty = !t.textContent;
+    if (empty) { t.textContent = 'Правильный ответ:'; s.textContent = 'здороваться — приветствовать'; }
+    const h = sheet.offsetHeight;
+    if (empty) { t.textContent = ''; s.textContent = ''; }
+    return h;
+  }
+  function fit(lockQuiz) {
+    const scr = screens[current];
+    const [minK, maxK] = FIT[current];
+    const root = document.documentElement.style;
+    root.setProperty('--k', '1');
+    if (current === 'quiz') scr.style.paddingBottom = sheetHeight() + 'px';
+    scr.classList.add('measuring');
+    const natural = $('.topbar').offsetHeight + scr.offsetHeight;
+    scr.classList.remove('measuring');
+    let k = Math.max(minK, Math.min(maxK, innerWidth / 360, innerHeight / natural));
+    if (current === 'quiz' && lockQuiz) {
+      if (quizK) k = Math.min(k, quizK);
+      quizK = k;
+    }
+    root.setProperty('--k', k.toFixed(3));
+  }
+  let fitTimer = 0;
+  addEventListener('resize', () => {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(() => { quizK = null; fit(true); }, 120);
+  });
+  if (document.fonts) document.fonts.ready.then(() => fit());
 
   // ---------- звук ----------
   function renderSoundBtn() {
@@ -974,6 +1023,7 @@ const Mascot = (() => {
   }
 
   function startGame() {
+    quizK = null;
     questions = buildRound();
     qi = 0; score = 0; streak = 0; best = 0; mistakes = [];
     updateStreak(false);
@@ -1014,6 +1064,7 @@ const Mascot = (() => {
     });
 
     Mascot.question(qi === 0);
+    fit(true);
   }
 
   function answer(i) {
@@ -1112,6 +1163,7 @@ const Mascot = (() => {
       li.append(pair, was);
       list.appendChild(li);
     });
+    fit();
   }
 
   function goStart() {

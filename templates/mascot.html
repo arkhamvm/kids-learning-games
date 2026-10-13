@@ -337,6 +337,7 @@
       <tr><td><code>Mascot.finish(score, total)</code></td><td>итог: возвращает <code>{ stars, title }</code> (≥90% — 3★, ≥70% — 2★, ≥40% — 1★)</td></tr>
       <tr><td><code>Mascot.phrases</code></td><td>реплики — переопределять через <code>Object.assign</code> под тему игры</td></tr>
       <tr><td><code>Mascot.sound</code>, <code>Mascot.sfx(name)</code></td><td>вкл/выкл звука; звуки <code>ok</code>, <code>bad</code>, <code>meow</code>, <code>win</code>, <code>end</code></td></tr>
+      <tr><td><code>Mascot.audio()</code></td><td>общий <code>AudioContext</code> (создаётся по первому касанию) — для своих звуков игры</td></tr>
     </table>
   </section>
 </div>
@@ -594,7 +595,7 @@ const Mascot = (() => {
   }
 
   return {
-    el, phrases, pick, mount, set, say, sfx, burst, rain,
+    el, phrases, pick, mount, set, say, sfx, burst, rain, audio,
     hello, question, correct, wrong, finish,
     get sound() { return soundOn; },
     set sound(on) {

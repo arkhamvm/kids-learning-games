@@ -312,6 +312,15 @@
       </div>
       <span class="game-go">Играть</span>
     </a>
+    <a class="game" href="games/alphabet/">
+      <div class="game-icon" style="--c: var(--blue); --cd: var(--blue-d); font-size: 32px">Aa</div>
+      <div class="game-text">
+        <div class="game-title">Английский алфавит</div>
+        <div class="game-meta"><span class="tag tag--purple">2 класс</span><span class="tag">Английский</span></div>
+        <p>Слушай, как звучат буквы, учи их с русской подсказкой и проверяй себя.</p>
+      </div>
+      <span class="game-go">Играть</span>
+    </a>
     <div class="game soon">Скоро здесь появятся новые игры</div>
   </div>
 
@@ -571,7 +580,7 @@ const Mascot = (() => {
   }
 
   return {
-    el, phrases, pick, mount, set, say, sfx, burst, rain,
+    el, phrases, pick, mount, set, say, sfx, burst, rain, audio,
     hello, question, correct, wrong, finish,
     get sound() { return soundOn; },
     set sound(on) {

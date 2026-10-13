@@ -4,9 +4,11 @@ Collection of small browser learning games for Russian primary-school kids (1–
 Each game is one self-contained HTML file, published on GitHub Pages:
 https://arkhamvm.github.io/kids-learning-games/
 
-**Reference game:** `games/sinonimy/index.html` — «Слова-друзья», synonym quiz (2 класс).
-The user liked it a lot: for any new game copy its structure, look and behaviour; change only the
-content and, if needed, the mechanic.
+**Reference games** — the user liked them a lot: for any new game copy their structure, look and
+behaviour; change only the content and, if needed, the mechanic.
+- `games/sinonimy/index.html` — «Слова-друзья», synonym quiz (2 класс): the basic quiz skeleton.
+- `games/alphabet/index.html` — «Английский алфавит» (2 класс): a learn screen (cards + grid) before
+  the quiz, several question types, pronunciation (device voice + embedded clips), Russian transcription.
 
 **Mascot template:** `templates/mascot.html` — котёнок Рыжик. Every game uses it unchanged (see below).
 
@@ -16,7 +18,8 @@ content and, if needed, the mechanic.
 games/<slug>/index.html     one game, fully self-contained
 templates/mascot.html       the mascot: preview page + the only source of the MASCOT:CSS / :SVG / :JS blocks
 scripts/mascot.py           sync | check — copy mascot blocks into pages / verify nothing drifted
-scripts/touch-test.mjs      plays a round with real touch taps on 2 phone sizes (headless Chrome)
+scripts/touch-test.mjs      plays a round with real touch taps on 2 phones + desktop: sound, fit, navigation
+scripts/alphabet_audio.py   regenerates the alphabet's embedded pronunciation clips (espeak-ng → MP3 → base64)
 index.html                  gallery — add a card for every new game (also uses the mascot)
 README.md                   list of games — add a row for every new game
 .claude/launch.json         static server "site" on :8765 for the browser pane
@@ -28,16 +31,29 @@ README.md                   list of games — add a row for every new game
 ## Hard requirements
 
 - **One HTML file**: inline `<style>`, inline `<script>`, images as inline SVG. No build step, no npm,
-  no external JS, no image files. The only external resource allowed is the Google Fonts `Nunito`
-  `<link>` with a system-font fallback — the game must still work offline.
+  no external JS, no image/audio files. The only external resource allowed is the Google Fonts `Nunito`
+  `<link>` with a system-font fallback — the game must still work offline. Emoji are fine as
+  pictures for words (🍎 🐱 🦒): they are text, render everywhere, cost nothing.
+- **Favicon** = the mascot's face (data-URI SVG, copy the `<link rel="icon">` from `templates/mascot.html`).
 - **Russian UI**, child-friendly and short. Address the child in gender-neutral forms
   («твой ответ», «Молодец!», «Умница!»), never «ты выбрал/выбрала».
 - **Content matches the requested grade.** Content bank is hand-written inside the file
   (no API, no generation at runtime). Review every item: each distractor must be unambiguously wrong
   (no accidental synonyms / second correct answers). Aim for 60–80 items, 10 per round, next round
   prefers items not seen yet.
+- **Every screen fits the screen height — no scrolling in the quiz.** `fit()` scales the whole page with
+  CSS `zoom` = available height / natural height of the active screen (`--k` on `<html>`;
+  `.app, .sheet { zoom: var(--k) }`, `.app { min-height: calc(100dvh / var(--k)) }`). Per-screen limits
+  `FIT = { start: [0.7, 1.4], learn: [0.7, 1.3], quiz: [0.6, 1.4], end: [0.8, 1.3] }`, also capped by
+  `innerWidth / 360` so phones don't get narrower than 360 CSS px. Short phones shrink, tablets and
+  desktops grow (up to ×1.4). The quiz reserves the feedback sheet's height as bottom padding, so the
+  sheet never covers answers; during a round the zoom only shrinks (no size jumps between questions).
+  Call `fit()` on every screen change, after rendering a question (`fit(true)` — locks the round's
+  zoom), after filling results, on `resize` and on `document.fonts.ready`. Copy `fit()` from a reference game.
+  The results screen may scroll (the review list), nothing else should.
 - **Phones first — kids play by tapping**, not with a mouse:
-  - works at 360–390 px, 16 px side gutter, no horizontal scroll; answers 2×2, one column below 460 px;
+  - works at 360–390 px, 16 px side gutter, no horizontal scroll; answers 2×2 (also on phones —
+    long words wrap with `hyphens: auto`; key badges 1–4 hidden under `@media (pointer: coarse)`);
   - `html, button { touch-action: manipulation; }` — no double-tap zoom on fast taps;
   - every `:hover` rule inside `@media (hover: hover)` — on touch screens hover sticks after a tap;
   - after an answer the right option is scrolled above the feedback sheet
@@ -45,6 +61,13 @@ README.md                   list of games — add a row for every new game
   - all actions are plain `click` handlers on buttons (taps produce clicks); no hover-only UI.
 - **Keyboard** too: `1`–`4` choose an answer; `Enter`/`Space` = start / next / play again. The global
   handler must skip when a `<button>` has focus — the native click already fires (otherwise double-advance).
+- **Speech / pronunciation** (when a game needs words spoken): prefer the device voice via
+  `speechSynthesis` for the right locale (e.g. `en-GB` — Russian schools teach British English), fall back
+  to clips embedded as base64 MP3 and played through `Mascot.audio()` (the shared, tap-unlocked
+  `AudioContext` — works on iOS without per-play gestures). Fall back to clips also on `utterance.onerror`
+  (network voices offline). Generate clips with a script like `scripts/alphabet_audio.py` (libespeak-ng via
+  ctypes is installed here; there is no espeak CLI). Explicit 🔊 taps always play; automatic playback
+  only when `Mascot.sound` is on.
 - `prefers-reduced-motion` respected. `localStorage` only for per-viewer prefs, always in `try/catch`.
 - No tracking, no network calls, no data collection.
 
@@ -54,6 +77,9 @@ Screens `#screenStart`, `#screenQuiz`, `#screenEnd` with `body[data-screen=start
 per-screen mascot slot + speech bubble; `#btnStart`, `#options .opt` (answer buttons, `.correct` /
 `.wrong` / `.dim`), `#sheet.show` + `#btnNext`, `#statScore` (`"7/10"`), `#btnAgain`, `#btnQuit`
 (with `confirm()`), `#btnSound` (`aria-pressed`), `#progress`, `#streakNum`, `#mascot`.
+The sheet sits inside `.sheet-dock` (fixed, `overflow: hidden`, `pointer-events: none`).
+Optional learn screen: `#btnLearn` on the start screen → `#screenLearn` (`body[data-screen=learn]`) with
+`.tile` buttons (tap = select + play sound) and `#btnBack`; the touch test exercises it when present.
 
 ## Look & feel (Duolingo-like)
 
@@ -69,7 +95,9 @@ line `#e5e5e5`. Font Nunito 700–900.
   (bumps, glows at ≥3), sound toggle (always visible).
 - **Feedback sheet** slides up from the bottom: green title from `Mascot.correct()` or red
   «Правильный ответ:», then the correct pair, button «Дальше» (last question: «Итоги»), red on wrong answers.
+- **Feedback sheet on phones** (< 460 px): one compact row — 40 px icon, 18/15 px text, small button.
 - **Screens**: start (mascot greets, rule explained with one example, «Начать») → quiz → results.
+  Screens slide in from above (`translateY(-8px)`), never from below (that would add scroll height).
 - **Results**: title + stars from `Mascot.finish()`, stat cards Верно / Серия / Точность,
   list «Запомни …» with the correct answer and the child's crossed-out answer, «Играть ещё».
 
@@ -127,6 +155,16 @@ SVG techniques used by the template (useful if it ever needs changes):
 - Several animations on the same property: the later one wins (happy = `mascot-hop … 2, mascot-bob … 1.1s infinite`).
 - The hidden feedback sheet needs `visibility: hidden` (delayed via transition) so its button can't be tabbed to.
 - iOS Safari shows `:active` only if a `touchstart` listener exists — the template adds one.
+- `zoom` + a fixed sheet parked below the screen makes Chrome count it in the page height → keep the sheet
+  inside the clipping `.sheet-dock`.
+- `fit()` measures the active screen with `.measuring { flex: none }` at `--k: 1`; don't lock the quiz zoom
+  from `show()` — the previous round's question is still in the DOM then.
+- The browser pane tab is often in the background (`document.visibilityState === 'hidden'`): CSS
+  animations and rAF freeze there (screens stuck at the first keyframe, confetti frozen), so measurements
+  and screenshots can mislead. Trust `scripts/touch-test.mjs` (headless Chrome renders normally).
+- The browser pane serves files only via the session's start folder: if the session began elsewhere, put a
+  `.claude/launch.json` there with `python3 -m http.server 8765 --directory <repo>`.
+- `gh` is a snap and can't read `/media/...`: run `gh` commands from `~` (`cd ~ && gh …`) and push with plain `git`.
 - `sed -i` fails on this NTFS drive («Операция не позволена» while preserving permissions) — edit files with Python or the Edit tool.
 - Build DOM from content with `textContent`, not `innerHTML`.
 - The browser pane can't open `file://`, and in mobile mode it still sends mouse clicks — real taps
@@ -143,6 +181,8 @@ SVG techniques used by the template (useful if it ever needs changes):
    python3 scripts/mascot.py check
    node scripts/touch-test.mjs games/<slug>/
    ```
+   The touch test covers 390×844, 360×640 and 1280×900: taps, sound on every answer, quiz fits the
+   height, mascot reactions, results, navigation, the learn screen if any.
    Then look at it: browser pane `preview_start` → `site` → `http://localhost:8765/games/<slug>/`
    (right and wrong answers, a perfect round, 375 px width, zero console errors).
 5. Add a card to `index.html` and a row to `README.md`.
