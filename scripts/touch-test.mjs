@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Plays one round of a game with real touch taps (headless Chrome + CDP Input.dispatchTouchEvent)
-// on two phone sizes and checks the owl reactions, the feedback sheet, results and navigation.
+// on two phone sizes and checks the mascot reactions, the feedback sheet, results and navigation.
 //
 //   node scripts/touch-test.mjs games/sinonimy/
 //
 // Needs Node >= 22 and google-chrome (or set CHROME=/path/to/chrome). Works for any game built on
 // the standard skeleton: #btnStart, #options .opt, #sheet, #btnNext, #statScore, #btnAgain,
-// #btnQuit, #btnSound, #owl, body[data-screen=start|quiz|end].
+// #btnQuit, #btnSound, #mascot, body[data-screen=start|quiz|end].
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -91,7 +91,7 @@ async function tapSel(sel) {
   await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 const screen = () => ev('document.body.dataset.screen');
-const owl = () => ev(`document.querySelector('#owl').getAttribute('class')`);
+const mascot = () => ev(`document.querySelector('#mascot').getAttribute('class')`);
 const noHScroll = () => ev('document.documentElement.scrollWidth <= innerWidth');
 
 await send('Page.enable');
@@ -131,16 +131,16 @@ for (const [W, H] of SIZES) {
   const s2 = await ev(`document.querySelector('#btnSound').getAttribute('aria-pressed')`);
   check('tap sound toggle off → on', s1 === 'false' && s2 === 'true', `${s1} → ${s2}`);
 
-  await tapSel('#owl');
+  await tapSel('#mascot');
   await sleep(150);
-  check('tap owl → wiggle', (await owl()).includes('poke'));
+  check('tap mascot → wiggle', (await mascot()).includes('poke'));
   const evs = await ev('__ev.slice()');
   check('taps arrive as touch → click', evs.includes('pointerdown:touch') && evs.includes('click:touch'), [...new Set(evs)].join(', '));
 
   await tapSel('#btnStart');
   await sleep(800);
   check('tap start → quiz', (await screen()) === 'quiz');
-  check('quiz: owl thinks', (await owl()).includes('is-think'));
+  check('quiz: mascot thinks', (await mascot()).includes('is-think'));
 
   let q = 0;
   let bad = [];
@@ -157,25 +157,25 @@ for (const [W, H] of SIZES) {
       const right = btns.findIndex((b) => b.classList.contains('correct'));
       const rr = btns[right].getBoundingClientRect();
       const sheet = document.querySelector('#sheet');
-      return { right, picked: btns[${pick}].className, owl: document.querySelector('#owl').getAttribute('class'),
+      return { right, picked: btns[${pick}].className, mascot: document.querySelector('#mascot').getAttribute('class'),
         shown: sheet.classList.contains('show'), visible: rr.top >= 0 && rr.bottom <= sheet.getBoundingClientRect().top };
     })()`);
     const isRight = r.right === pick;
-    const ok = r.shown && r.visible && (isRight ? r.owl.includes('is-happy') : r.owl.includes('is-sad') && r.picked.includes('wrong'));
+    const ok = r.shown && r.visible && (isRight ? r.mascot.includes('is-happy') : r.mascot.includes('is-sad') && r.picked.includes('wrong'));
     if (!ok) bad.push(`q${q + 1}: ${JSON.stringify(r)}`);
     await tapSel('#btnNext');
     await sleep(700);
     q++;
   }
-  check(`${q} questions: owl happy/sad, sheet shown, right option visible above sheet`, bad.length === 0, bad.join(' ; '));
+  check(`${q} questions: mascot happy/sad, sheet shown, right option visible above sheet`, bad.length === 0, bad.join(' ; '));
   check('no sticky :hover between questions', sticky === 0, `${sticky}`);
 
   const end = await ev(`({ screen: document.body.dataset.screen, score: document.querySelector('#statScore').textContent,
-    owl: document.querySelector('#owl').getAttribute('class') })`);
+    mascot: document.querySelector('#mascot').getAttribute('class') })`);
   const [sc, tot] = end.score.split('/').map(Number);
   const ratio = sc / tot;
   const want = ratio >= 0.7 ? 'is-party' : ratio >= 0.4 ? 'is-happy' : 'is-wave';
-  check(`results ${end.score} → owl ${want}`, end.screen === 'end' && end.owl.includes(want), end.owl);
+  check(`results ${end.score} → mascot ${want}`, end.screen === 'end' && end.mascot.includes(want), end.mascot);
   check('results: no horizontal scroll', await noHScroll());
 
   await tapSel('#btnAgain');

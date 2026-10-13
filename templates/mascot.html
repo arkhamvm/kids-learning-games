@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Котёнок Рыжик</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 32L11 5L29 17Z' fill='%23ff9f43'/%3E%3Cpath d='M56 32L53 5L35 17Z' fill='%23ff9f43'/%3E%3Cellipse cx='32' cy='37' rx='27' ry='23' fill='%23ff9f43'/%3E%3Ccircle cx='21' cy='35' r='8' fill='%23fff'/%3E%3Ccircle cx='43' cy='35' r='8' fill='%23fff'/%3E%3Ccircle cx='22' cy='36' r='4.5' fill='%232b2b2b'/%3E%3Ccircle cx='42' cy='36' r='4.5' fill='%232b2b2b'/%3E%3Cpath d='M28 45L36 45L32 50Z' fill='%23ff7896'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<!--
+  Шаблон маскота «котёнок Рыжик» — единственный источник правды для всех мини-игр.
+  В игру копируются три блока между маркерами MASCOT:CSS, MASCOT:SVG, MASCOT:JS (без изменений).
+  Синхронизация и проверка: python3 scripts/mascot.py sync | check
+-->
+<style>
+  :root {
+    --green: #58cc02; --green-d: #46a302; --green-l: #d7ffb8; --green-t: #58a700;
+    --red: #ff4b4b; --red-d: #ea2b2b;
+    --blue: #1cb0f6; --blue-d: #1899d6;
+    --orange: #ff9600; --gold: #ffc800; --gold-d: #e6a800; --purple: #ce82ff; --purple-d: #a568cc;
+    --ink: #3c3c3c; --ink-2: #4b4b4b; --muted: #777; --faint: #afafaf;
+    --line: #e5e5e5; --soft: #f7f7f7; --bg: #fff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  html, button { touch-action: manipulation; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: Nunito, "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-weight: 700;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+  .page { max-width: 760px; margin: 0 auto; padding: 24px 16px 56px; }
+  h1 { margin: 0; font-size: clamp(28px, 6vw, 38px); font-weight: 900; text-align: center; }
+  .sub { margin: 6px 0 0; text-align: center; color: var(--muted); font-size: 16px; }
+  h2 { margin: 0 0 12px; font-size: 20px; font-weight: 900; }
+
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 22px; min-height: 330px; }
+  .stage .bubble { max-width: 360px; margin-bottom: 8px; text-align: center; }
+  .slot { width: min(220px, 56vw); }
+
+  .panel { margin-top: 18px; display: grid; gap: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .btn {
+    border: 0; border-radius: 14px; padding: 12px 16px; font-size: 15px; font-weight: 900;
+    background: var(--c, var(--green)); color: #fff; box-shadow: 0 4px 0 var(--cd, var(--green-d));
+    transition: transform .08s, box-shadow .08s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 0 0 var(--cd, var(--green-d)); }
+  .btn--red { --c: var(--red); --cd: var(--red-d); }
+  .btn--blue { --c: var(--blue); --cd: var(--blue-d); }
+  .btn--gold { --c: var(--gold); --cd: var(--gold-d); }
+  .btn--purple { --c: var(--purple); --cd: var(--purple-d); }
+  .btn--ghost { --c: #fff; --cd: var(--line); color: var(--ink-2); border: 2px solid var(--line); }
+  .status { text-align: center; font-size: 15px; color: var(--muted); min-height: 1.4em; }
+  .status b { color: var(--ink); }
+
+  .card { margin-top: 30px; padding: 20px; border: 2px solid var(--line); border-radius: 18px; }
+  .card ul, .card ol { margin: 0; padding-left: 22px; line-height: 1.6; color: var(--ink-2); }
+  .card li + li { margin-top: 4px; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .9em; background: var(--soft); border-radius: 6px; padding: 1px 5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td { padding: 8px 6px; border-top: 2px solid var(--soft); vertical-align: top; color: var(--ink-2); }
+  td:first-child { white-space: nowrap; }
+
+  /* ===== MASCOT:CSS START ===== */
+  /* Котёнок Рыжик: speech bubble + mascot + confetti. Source of truth: templates/mascot.html */
+  .bubble {
+    position: relative; background: #fff; border: 2px solid var(--line, #e5e5e5); border-radius: 18px;
+    padding: 12px 16px; font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink-2, #4b4b4b);
+  }
+  .bubble::before { content: ""; position: absolute; width: 18px; height: 18px; background: #fff; }
+  .bubble--left::before { left: -11px; top: 50%; transform: translateY(-50%) rotate(45deg); border-left: 2px solid var(--line, #e5e5e5); border-bottom: 2px solid var(--line, #e5e5e5); }
+  .bubble--down::before { left: 50%; bottom: -11px; transform: translateX(-50%) rotate(45deg); border-right: 2px solid var(--line, #e5e5e5); border-bottom: 2px solid var(--line, #e5e5e5); }
+  .bubble.pop { animation: mascot-pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes mascot-pop { 0% { transform: scale(.85); opacity: .3; } 100% { transform: none; opacity: 1; } }
+
+  .mascot { display: block; width: 100%; height: auto; overflow: visible; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .mascot * { transform-box: fill-box; }
+  .mascot .m-shadow { transform-origin: center; animation: mascot-shadow 2.6s ease-in-out infinite; }
+  .mascot .m-body { transform-origin: 50% 100%; animation: mascot-bob 2.6s ease-in-out infinite; }
+  .mascot .m-tilt { transform-origin: 50% 100%; transition: transform .4s ease; }
+  .mascot .m-tail { transform-origin: 0% 95%; animation: mascot-tail 2.6s ease-in-out infinite; transition: transform .3s ease; }
+  .mascot .m-ear-l, .mascot .m-ear-r { transform-origin: 50% 75%; transition: transform .3s ease; }
+  .mascot .m-paw-l { transform-origin: 85% 4%; transition: transform .3s ease; }
+  .mascot .m-paw-r { transform-origin: 15% 4%; transition: transform .3s ease; }
+  .mascot .m-lid { transform-origin: 50% 0; transform: scaleY(0); animation: mascot-blink 4.4s infinite; transition: transform .25s ease; }
+  .mascot .m-mood { transition: transform .3s ease; }
+  .mascot .m-open { transition: opacity .15s; }
+  .mascot .m-happy, .mascot .m-brows, .mascot .m-cheeks, .mascot .m-tear { opacity: 0; transition: opacity .2s; }
+  .mascot .m-mouth { transform-origin: 50% 0; transform: scaleY(0); transition: transform .2s ease; }
+  .mascot .m-cap { transform-origin: 50% 100%; }
+  @keyframes mascot-bob { 50% { transform: translateY(-4px); } }
+  @keyframes mascot-shadow { 50% { transform: scaleX(.92); } }
+  @keyframes mascot-blink { 0%, 91%, 100% { transform: scaleY(0); } 94% { transform: scaleY(1); } }
+  @keyframes mascot-tail { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(7deg); } }
+
+  /* wave: greeting */
+  .mascot.is-wave .m-paw-r { animation: mascot-wave 1.1s ease-in-out infinite; }
+  @keyframes mascot-wave { 0%, 100% { transform: rotate(-75deg); } 50% { transform: rotate(-108deg); } }
+
+  /* think: question on screen */
+  .mascot.is-think .m-tilt { transform: rotate(-5deg); }
+  .mascot.is-think .m-mood { transform: translate(4px, -5px); }
+  .mascot.is-think .m-ear-r { transform: rotate(14deg); }
+
+  /* happy: correct answer */
+  .mascot.is-happy .m-body { animation: mascot-hop .55s cubic-bezier(.3, .7, .4, 1) 2, mascot-bob 2.6s ease-in-out 1.1s infinite; }
+  .mascot.is-happy .m-shadow { animation: mascot-hop-shadow .55s 2; }
+  .mascot.is-happy .m-paw-l { animation: mascot-cheer-l .26s ease-in-out 4; }
+  .mascot.is-happy .m-paw-r { animation: mascot-cheer-r .26s ease-in-out 4; }
+  .mascot.is-happy .m-tail { animation: mascot-wag .22s ease-in-out 6, mascot-tail 2.6s ease-in-out 1.3s infinite; }
+  .mascot.is-happy .m-ear-l { animation: mascot-perk-l .55s ease-in-out 2; }
+  .mascot.is-happy .m-ear-r { animation: mascot-perk-r .55s ease-in-out 2; }
+  .mascot.is-happy .m-open, .mascot.is-party .m-open { opacity: 0; }
+  .mascot.is-happy .m-happy, .mascot.is-happy .m-cheeks,
+  .mascot.is-party .m-happy, .mascot.is-party .m-cheeks { opacity: 1; }
+  .mascot.is-happy .m-mouth, .mascot.is-party .m-mouth { transform: scaleY(1); }
+  @keyframes mascot-hop {
+    0% { transform: none; }
+    20% { transform: scale(1.08, .9); }
+    50% { transform: translateY(-28px) scale(.95, 1.06); }
+    80% { transform: scale(1.04, .96); }
+    100% { transform: none; }
+  }
+  @keyframes mascot-hop-shadow { 50% { transform: scale(.7); opacity: .05; } }
+  @keyframes mascot-cheer-l { 50% { transform: rotate(75deg); } }
+  @keyframes mascot-cheer-r { 50% { transform: rotate(-75deg); } }
+  @keyframes mascot-wag { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(14deg); } }
+  @keyframes mascot-perk-l { 50% { transform: rotate(-10deg); } }
+  @keyframes mascot-perk-r { 50% { transform: rotate(10deg); } }
+
+  /* sad: wrong answer */
+  .mascot.is-sad .m-body { animation: mascot-sad-shake .55s ease-in-out both; }
+  .mascot.is-sad .m-paw-l { transform: rotate(-8deg); }
+  .mascot.is-sad .m-paw-r { transform: rotate(8deg); }
+  .mascot.is-sad .m-ear-l { transform: rotate(-24deg); }
+  .mascot.is-sad .m-ear-r { transform: rotate(24deg); }
+  .mascot.is-sad .m-tail { animation: none; transform: rotate(30deg); }
+  .mascot.is-sad .m-lid { animation: none; }
+  .mascot.is-sad .m-lid-l { transform: rotate(-14deg) scaleY(.42); }
+  .mascot.is-sad .m-lid-r { transform: rotate(14deg) scaleY(.42); }
+  .mascot.is-sad .m-mood { transform: translate(0, 6px); }
+  .mascot.is-sad .m-brows { opacity: 1; }
+  .mascot.is-sad .m-tear { opacity: 1; animation: mascot-tear 1.7s ease-in .35s infinite; }
+  @keyframes mascot-sad-shake {
+    0% { transform: none; }
+    15% { transform: translateX(-7px) rotate(-5deg); }
+    35% { transform: translateX(7px) rotate(5deg); }
+    55% { transform: translateX(-4px) rotate(-2deg); }
+    75% { transform: translateX(2px); }
+    100% { transform: translateY(5px) scale(1.03, .95); }
+  }
+  @keyframes mascot-tear { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(42px); opacity: 0; } }
+
+  /* party: good final result */
+  .mascot.is-party .m-body { animation: mascot-hop .6s cubic-bezier(.3, .7, .4, 1) infinite; }
+  .mascot.is-party .m-shadow { animation: mascot-hop-shadow .6s infinite; }
+  .mascot.is-party .m-paw-l { animation: mascot-cheer-l .3s ease-in-out infinite; }
+  .mascot.is-party .m-paw-r { animation: mascot-cheer-r .3s ease-in-out infinite; }
+  .mascot.is-party .m-tail { animation: mascot-wag .22s ease-in-out infinite; }
+  .mascot.is-party .m-ear-l { animation: mascot-perk-l .6s ease-in-out infinite; }
+  .mascot.is-party .m-ear-r { animation: mascot-perk-r .6s ease-in-out infinite; }
+  .mascot.is-party .m-cap { animation: mascot-cap-toss 1.2s ease-in-out infinite; }
+  @keyframes mascot-cap-toss { 0%, 100% { transform: none; } 50% { transform: translateY(-14px) rotate(-14deg); } }
+
+  /* poke: tap / click on the mascot */
+  .mascot.poke .m-tilt { animation: mascot-wiggle .5s ease-in-out; }
+  .mascot.poke .m-ear-l { animation: mascot-perk-l .25s ease-in-out 2; }
+  @keyframes mascot-wiggle { 0%, 100% { transform: none; } 25% { transform: rotate(-9deg); } 60% { transform: rotate(7deg); } }
+
+  .mascot-fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mascot *, .bubble { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+  /* ===== MASCOT:CSS END ===== */
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Котёнок Рыжик</h1>
+  <p class="sub">Шаблон маскота для всех мини-игр. Нажимай кнопки — и тыкай в котёнка.</p>
+
+  <div class="stage">
+    <div class="bubble bubble--down pop" id="bubble">Привет! Я котёнок Рыжик. Давай играть!</div>
+    <div class="slot" id="slot">
+      <!-- ===== MASCOT:SVG START ===== -->
+      <svg class="mascot is-wave" id="mascot" viewBox="0 0 200 220" role="img" aria-label="Котёнок Рыжик">
+        <defs>
+          <clipPath id="mEyeL"><circle cx="74" cy="92" r="20"/></clipPath>
+          <clipPath id="mEyeR"><circle cx="126" cy="92" r="20"/></clipPath>
+        </defs>
+        <ellipse class="m-shadow" cx="100" cy="207" rx="56" ry="7" fill="#000" opacity=".1"/>
+        <g class="m-body">
+          <g class="m-tilt">
+            <!-- хвостик -->
+            <g class="m-tail">
+              <path d="M132 188C172 190 192 160 180 132C174 118 160 116 160 128" fill="none" stroke="#f28b2c" stroke-width="13" stroke-linecap="round"/>
+              <circle cx="160" cy="128" r="6.5" fill="#fff3e0"/>
+            </g>
+            <!-- туловище и задние лапки -->
+            <path d="M64 198C52 172 56 134 78 118H122C144 134 148 172 136 198Z" fill="#ff9f43"/>
+            <ellipse cx="100" cy="168" rx="25" ry="27" fill="#fff3e0"/>
+            <g fill="#fff3e0"><ellipse cx="80" cy="198" rx="15" ry="8"/><ellipse cx="120" cy="198" rx="15" ry="8"/></g>
+            <path d="M76 194v6M84 194v6M116 194v6M124 194v6" stroke="#e8b48a" stroke-width="2" stroke-linecap="round"/>
+            <!-- ушки -->
+            <g class="m-ear-l">
+              <path d="M46 76L52 22L92 50Z" fill="#ff9f43" stroke="#ff9f43" stroke-width="8" stroke-linejoin="round"/>
+              <path d="M57 64L60 36L81 52Z" fill="#ffb8c6"/>
+            </g>
+            <g class="m-ear-r">
+              <path d="M154 76L148 22L108 50Z" fill="#ff9f43" stroke="#ff9f43" stroke-width="8" stroke-linejoin="round"/>
+              <path d="M143 64L140 36L119 52Z" fill="#ffb8c6"/>
+            </g>
+            <!-- голова, полоски, мордочка -->
+            <path d="M100 42C138 42 164 62 164 95C164 124 136 140 100 140C64 140 36 124 36 95C36 62 62 42 100 42Z" fill="#ff9f43"/>
+            <path d="M90 47l3 13M100 44v15M110 47l-3 13M38 96h12M39 104l11-2M162 96h-12M161 104l-11-2" stroke="#e57a1e" stroke-width="4.5" stroke-linecap="round"/>
+            <ellipse cx="100" cy="120" rx="25" ry="15" fill="#fff3e0"/>
+            <!-- открытые глаза -->
+            <g class="m-open">
+              <g clip-path="url(#mEyeL)">
+                <circle cx="74" cy="92" r="20" fill="#fff"/>
+                <g class="m-track"><g class="m-mood">
+                  <circle cx="76" cy="94" r="13" fill="#6cc644"/>
+                  <circle cx="76" cy="94" r="8" fill="#2b2b2b"/>
+                  <circle cx="80.5" cy="89" r="3.6" fill="#fff"/>
+                  <circle cx="72" cy="99" r="1.7" fill="#fff"/>
+                </g></g>
+                <rect class="m-lid m-lid-l" x="46" y="66" width="56" height="54" fill="#ff9f43"/>
+              </g>
+              <g clip-path="url(#mEyeR)">
+                <circle cx="126" cy="92" r="20" fill="#fff"/>
+                <g class="m-track"><g class="m-mood">
+                  <circle cx="124" cy="94" r="13" fill="#6cc644"/>
+                  <circle cx="124" cy="94" r="8" fill="#2b2b2b"/>
+                  <circle cx="128.5" cy="89" r="3.6" fill="#fff"/>
+                  <circle cx="120" cy="99" r="1.7" fill="#fff"/>
+                </g></g>
+                <rect class="m-lid m-lid-r" x="98" y="66" width="56" height="54" fill="#ff9f43"/>
+              </g>
+            </g>
+            <!-- счастливые глазки ^ ^ -->
+            <g class="m-happy" fill="none" stroke="#3c3c3c" stroke-width="6" stroke-linecap="round">
+              <path d="M60 96Q74 80 88 96"/><path d="M112 96Q126 80 140 96"/>
+            </g>
+            <!-- грустные бровки -->
+            <g class="m-brows" fill="none" stroke="#b85a14" stroke-width="5" stroke-linecap="round">
+              <path d="M56 70L88 62"/><path d="M144 70L112 62"/>
+            </g>
+            <!-- щёчки -->
+            <g class="m-cheeks" fill="#ff86a6">
+              <ellipse cx="56" cy="116" rx="9" ry="5.5"/><ellipse cx="144" cy="116" rx="9" ry="5.5"/>
+            </g>
+            <!-- ротик, носик, усы -->
+            <path class="m-mouth" d="M92 119Q100 136 108 119Z" fill="#e8435a"/>
+            <path d="M100 113v4M100 117q-3 5-8 2M100 117q3 5 8 2" fill="none" stroke="#7a3e12" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M94 107Q100 103 106 107Q103 113 100 114Q97 113 94 107Z" fill="#ff7896"/>
+            <g stroke="#7a3e12" stroke-width="2" stroke-linecap="round" opacity=".5">
+              <path d="M72 116L46 111M72 121L44 122M72 126L48 132M128 116L154 111M128 121L156 122M128 126L152 132"/>
+            </g>
+            <!-- слезинка -->
+            <path class="m-tear" d="M57 106q-6 9 0 12.5q6-3.5 0-12.5z" fill="#1cb0f6"/>
+            <!-- передние лапки -->
+            <g class="m-paw-l">
+              <path d="M74 138C62 144 57 162 60 174C62 182 73 183 76 176C79 164 84 150 84 142C82 136 78 135 74 138Z" fill="#f28b2c"/>
+              <ellipse cx="68" cy="177" rx="8" ry="6" fill="#fff3e0"/>
+            </g>
+            <g class="m-paw-r">
+              <path d="M126 138C138 144 143 162 140 174C138 182 127 183 124 176C121 164 116 150 116 142C118 136 122 135 126 138Z" fill="#f28b2c"/>
+              <ellipse cx="132" cy="177" rx="8" ry="6" fill="#fff3e0"/>
+            </g>
+            <!-- шапочка отличника -->
+            <g transform="rotate(-8 100 40)">
+              <g class="m-cap">
+                <path d="M84 45V36h32v9q-16 7-32 0z" fill="#2b2f4a"/>
+                <path d="M100 22L128 32L100 42L72 32Z" fill="#41477a"/>
+                <path d="M100 32L124 37V48" fill="none" stroke="#ffc800" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="124" cy="50" r="3.4" fill="#ffc800"/>
+                <circle cx="100" cy="32" r="2.8" fill="#ffc800"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </svg>
+      <!-- ===== MASCOT:SVG END ===== -->
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <button class="btn btn--blue" type="button" data-act="hello">Привет</button>
+      <button class="btn btn--purple" type="button" data-act="question">Вопрос</button>
+      <button class="btn" type="button" data-act="correct">Верно</button>
+      <button class="btn btn--red" type="button" data-act="wrong">Ошибка</button>
+    </div>
+    <div class="row">
+      <button class="btn btn--gold" type="button" data-act="finish" data-score="10">Итог 10/10</button>
+      <button class="btn btn--gold" type="button" data-act="finish" data-score="7">Итог 7/10</button>
+      <button class="btn btn--gold" type="button" data-act="finish" data-score="5">Итог 5/10</button>
+      <button class="btn btn--gold" type="button" data-act="finish" data-score="2">Итог 2/10</button>
+      <button class="btn btn--ghost" type="button" id="btnSound"></button>
+    </div>
+    <div class="status" id="status">Серия: <b>0</b></div>
+  </div>
+
+  <section class="card">
+    <h2>Поведение — одинаковое во всех играх</h2>
+    <ul>
+      <li><b>Старт</b> — машет лапкой и здоровается.</li>
+      <li><b>Вопрос на экране</b> — задумчиво смотрит вверх, наклонив голову и повернув ушко.</li>
+      <li><b>Верный ответ</b> — подпрыгивает, вскидывает лапки, жмурится от радости, краснеет и виляет хвостиком; из кнопки ответа вылетает конфетти.</li>
+      <li><b>Ошибка</b> — качает головой, прижимает ушки, опускает веки, хмурится, роняет слезинку; хвостик повисает.</li>
+      <li><b>Итог ≥ 70%</b> — танцует, подбрасывает шапочку, сверху сыплется конфетти. 40–69% — радуется, меньше — машет и подбадривает.</li>
+      <li><b>Реплики</b> — каждый раз разные в облачке; особые фразы за 3, 5, 7 и 10 верных ответов подряд.</li>
+      <li><b>Глаза</b> следят за мышкой или пальцем; <b>клик/тап</b> по котёнку — «мяу» и смешная фраза.</li>
+      <li><b>Звуки</b> — синтезируются в браузере (без файлов); выключатель звука общий для всех игр.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Как встроить в игру</h2>
+    <ol>
+      <li>Вставить пустые маркеры <code>MASCOT:CSS</code> (в <code>&lt;style&gt;</code>), <code>MASCOT:SVG</code> (в место для котёнка) и <code>MASCOT:JS</code> (в начало <code>&lt;script&gt;</code>) и запустить <code>python3 scripts/mascot.py sync</code>.</li>
+      <li>Дать каждому экрану слот и облачко: <code>&lt;div class="bubble bubble--down"&gt;</code> или <code>bubble--left</code>.</li>
+      <li>Вызывать события игры:</li>
+    </ol>
+    <table>
+      <tr><td><code>Mascot.mount(slot, bubble)</code></td><td>перенести котёнка на экран и выбрать облачко</td></tr>
+      <tr><td><code>Mascot.hello(text?)</code></td><td>стартовый экран: машет, здоровается</td></tr>
+      <tr><td><code>Mascot.question(isFirst)</code></td><td>новый вопрос: думает, подсказывает</td></tr>
+      <tr><td><code>Mascot.correct(streak, buttonEl)</code></td><td>верно: радость, звук, конфетти; возвращает заголовок «Отлично!»…</td></tr>
+      <tr><td><code>Mascot.wrong()</code></td><td>ошибка: грусть, звук, утешение</td></tr>
+      <tr><td><code>Mascot.finish(score, total)</code></td><td>итог: возвращает <code>{ stars, title }</code> (≥90% — 3★, ≥70% — 2★, ≥40% — 1★)</td></tr>
+      <tr><td><code>Mascot.phrases</code></td><td>реплики — переопределять через <code>Object.assign</code> под тему игры</td></tr>
+      <tr><td><code>Mascot.sound</code>, <code>Mascot.sfx(name)</code></td><td>вкл/выкл звука; звуки <code>ok</code>, <code>bad</code>, <code>meow</code>, <code>win</code>, <code>end</code></td></tr>
+    </table>
+  </section>
+</div>
+
+<script>
+// ===== MASCOT:JS START =====
+// Котёнок Рыжик: mascot controller. Source of truth: templates/mascot.html
+const Mascot = (() => {
+  const el = document.getElementById('mascot');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const phrases = {
+    hello: 'Привет! Я котёнок Рыжик. Давай играть!',
+    first: 'Мяу! Выбирай правильный ответ!',
+    ask: ['Подумай хорошенько…', 'Мяу! Выбирай!', 'Я знаю, ты справишься!', 'Какой ответ правильный?'],
+    ok: ['Молодец!', 'Верно!', 'Супер!', 'Умница!', 'Так держать!', 'Ух ты, здорово!', 'Правильно!', 'Вот это да!'],
+    okTitle: ['Отлично!', 'Верно!', 'Превосходно!', 'Правильно!', 'Здорово!'],
+    bad: ['Ой! Ничего страшного.', 'Почти! Запомни этот ответ.', 'Мяу… ошибочка. Ты справишься!', 'Не беда, идём дальше!'],
+    streak: { 3: 'Три подряд! Ты в ударе!', 5: 'Пять подряд! Мур-мур-мур!', 7: 'Семь подряд! Невероятно!', 10: 'Десять подряд! Ты чемпион!' },
+    poke: ['Мяу!', 'Мур-р-р…', 'Хи-хи, щекотно!', 'Я в тебя верю!', 'Котики обожают учиться!'],
+    results: [
+      { title: 'Попробуем ещё раз?', say: 'Не грусти! С каждым разом будет получаться лучше.' },
+      { title: 'Хорошее начало!', say: 'У тебя уже получается. Давай ещё!' },
+      { title: 'Отлично!', say: 'Здорово! Ещё чуть-чуть — и будет идеально!' },
+      { title: 'Великолепно!', say: 'Мур-р! Ты настоящий знаток!' },
+    ],
+  };
+
+  let lastPick = null;
+  function pick(arr) {
+    let x;
+    do { x = arr[Math.floor(Math.random() * arr.length)]; } while (arr.length > 1 && x === lastPick);
+    return (lastPick = x);
+  }
+
+  // ---- state + speech bubble ----
+  let bubble = null;
+  let busy = false; // an answer reaction is on screen: poking doesn't replace its phrase
+  function set(state) {
+    el.classList.remove('is-wave', 'is-think', 'is-happy', 'is-sad', 'is-party');
+    el.getBoundingClientRect(); // restart CSS animations
+    if (state) el.classList.add('is-' + state);
+  }
+  function say(text) {
+    if (!bubble) return;
+    bubble.textContent = text;
+    bubble.classList.remove('pop');
+    void bubble.offsetWidth;
+    bubble.classList.add('pop');
+  }
+  function mount(slot, bubbleEl) {
+    if (slot && el.parentNode !== slot) slot.appendChild(el);
+    bubble = bubbleEl || null;
+  }
+
+  // ---- eyes follow the mouse / finger ----
+  const tracks = el.querySelectorAll('.m-track');
+  function look(x, y) {
+    const r = el.getBoundingClientRect();
+    const dx = x - (r.left + r.width / 2);
+    const dy = y - (r.top + r.height * 0.42);
+    const d = Math.hypot(dx, dy) || 1;
+    const k = Math.min(1, d / 260) * 5;
+    const t = `translate(${(dx / d * k).toFixed(1)} ${(dy / d * k).toFixed(1)})`;
+    tracks.forEach((g) => g.setAttribute('transform', t));
+  }
+  addEventListener('pointermove', (e) => look(e.clientX, e.clientY), { passive: true });
+  addEventListener('pointerdown', (e) => look(e.clientX, e.clientY), { passive: true });
+  document.documentElement.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse') tracks.forEach((g) => g.removeAttribute('transform'));
+  });
+  // iOS Safari applies :active (button press effect) only when a touchstart listener exists
+  document.addEventListener('touchstart', () => {}, { passive: true });
+
+  // ---- poke ----
+  el.addEventListener('click', () => {
+    el.classList.remove('poke');
+    el.getBoundingClientRect();
+    el.classList.add('poke');
+    sfx('meow');
+    if (!busy) say(pick(phrases.poke));
+  });
+  el.addEventListener('animationend', (e) => {
+    if (e.animationName === 'mascot-wiggle') el.classList.remove('poke');
+  });
+
+  // ---- sound: Web Audio, no files; on/off shared by all games ----
+  let actx = null;
+  let soundOn = true;
+  try { soundOn = localStorage.getItem('mascot-sound') !== 'off'; } catch (e) {}
+  function audio() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function tone(freq, at, dur, type = 'sine', vol = 0.18, toFreq) {
+    const a = audio();
+    if (!a) return;
+    const t0 = a.currentTime + at;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    if (toFreq) o.frequency.exponentialRampToValueAtTime(toFreq, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(a.destination);
+    o.start(t0);
+    o.stop(t0 + dur + 0.05);
+  }
+  function meow() {
+    // sawtooth through a sweeping low-pass filter: "m-i-a-u"
+    const a = audio();
+    if (!a) return;
+    const t0 = a.currentTime;
+    const o = a.createOscillator();
+    const f = a.createBiquadFilter();
+    const g = a.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(480, t0);
+    o.frequency.linearRampToValueAtTime(820, t0 + 0.14);
+    o.frequency.exponentialRampToValueAtTime(420, t0 + 0.5);
+    f.type = 'lowpass';
+    f.Q.value = 6;
+    f.frequency.setValueAtTime(1200, t0);
+    f.frequency.linearRampToValueAtTime(2200, t0 + 0.14);
+    f.frequency.exponentialRampToValueAtTime(800, t0 + 0.5);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.12, t0 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+    o.connect(f).connect(g).connect(a.destination);
+    o.start(t0);
+    o.stop(t0 + 0.6);
+  }
+  const SFX = {
+    ok:   () => { tone(784, 0, 0.12, 'sine', 0.2); tone(1047, 0.09, 0.24, 'sine', 0.2); },
+    bad:  () => { tone(330, 0, 0.16, 'triangle', 0.24, 300); tone(247, 0.14, 0.32, 'triangle', 0.24, 210); },
+    meow,
+    win:  () => [523, 659, 784, 1047, 1319].forEach((f, k) => tone(f, k * 0.1, 0.28, 'sine', 0.16)),
+    end:  () => [523, 659, 784].forEach((f, k) => tone(f, k * 0.13, 0.24, 'sine', 0.14)),
+  };
+  function sfx(name) {
+    if (!soundOn || !SFX[name]) return;
+    try { SFX[name](); } catch (e) {}
+  }
+
+  // ---- confetti ----
+  const fx = document.createElement('canvas');
+  fx.className = 'mascot-fx';
+  fx.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(fx);
+  const ctx = fx.getContext('2d');
+  const COLORS = ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff', '#ff9600'];
+  let parts = [];
+  let raf = 0;
+  let dpr = 1;
+  function sizeFx() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    fx.width = innerWidth * dpr;
+    fx.height = innerHeight * dpr;
+  }
+  addEventListener('resize', sizeFx);
+  sizeFx();
+  function spawn(x, y, vx, vy, max) {
+    parts.push({
+      x, y, vx, vy, max, life: 0,
+      w: 6 + Math.random() * 6, h: 4 + Math.random() * 5,
+      r: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.3,
+      c: COLORS[Math.floor(Math.random() * COLORS.length)],
+    });
+  }
+  function run() { if (!raf) raf = requestAnimationFrame(tick); }
+  function tick() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    parts = parts.filter((p) => p.life < p.max && p.y < innerHeight + 30);
+    for (const p of parts) {
+      p.life++;
+      p.vy = (p.vy + 0.18) * 0.985;
+      p.vx *= 0.985;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.r += p.vr;
+      ctx.globalAlpha = Math.min(1, (p.max - p.life) / 20);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.life * 0.15 + p.r)) + 1);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    raf = parts.length ? requestAnimationFrame(tick) : 0;
+  }
+  function burst(x, y, n = 26) {
+    if (reduceMotion) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 2 + Math.random() * 5;
+      spawn(x, y, Math.cos(a) * s, Math.sin(a) * s - 3, 60 + Math.random() * 40);
+    }
+    run();
+  }
+  function rain() {
+    if (reduceMotion) return;
+    for (let i = 0; i < 170; i++) {
+      spawn(Math.random() * innerWidth, -20 - Math.random() * innerHeight * 0.7, (Math.random() - 0.5) * 2, 2 + Math.random() * 3, 320);
+    }
+    run();
+  }
+
+  // ---- game events ----
+  function hello(text) {
+    busy = false;
+    set('wave');
+    say(text || phrases.hello);
+  }
+  function question(isFirst) {
+    busy = false;
+    set('think');
+    say(isFirst ? phrases.first : pick(phrases.ask));
+  }
+  function correct(streak, fromEl) {
+    busy = true;
+    set('happy');
+    sfx('ok');
+    say(phrases.streak[streak] || pick(phrases.ok));
+    if (fromEl) {
+      const r = fromEl.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height / 2);
+    }
+    return pick(phrases.okTitle);
+  }
+  function wrong() {
+    busy = true;
+    set('sad');
+    sfx('bad');
+    say(pick(phrases.bad));
+  }
+  function finish(score, total) {
+    const ratio = total ? score / total : 0;
+    const stars = ratio >= 0.9 ? 3 : ratio >= 0.7 ? 2 : ratio >= 0.4 ? 1 : 0;
+    const res = phrases.results[stars];
+    busy = false;
+    set(stars >= 2 ? 'party' : stars === 1 ? 'happy' : 'wave');
+    say(res.say);
+    sfx(stars >= 2 ? 'win' : 'end');
+    if (stars >= 2) setTimeout(rain, 250);
+    return { stars, title: res.title };
+  }
+
+  return {
+    el, phrases, pick, mount, set, say, sfx, burst, rain,
+    hello, question, correct, wrong, finish,
+    get sound() { return soundOn; },
+    set sound(on) {
+      soundOn = Boolean(on);
+      try { localStorage.setItem('mascot-sound', soundOn ? 'on' : 'off'); } catch (e) {}
+    },
+  };
+})();
+// ===== MASCOT:JS END =====
+
+// ---- demo wiring (not part of the template) ----
+(() => {
+  const status = document.getElementById('status');
+  const btnSound = document.getElementById('btnSound');
+  let streak = 0;
+  Mascot.mount(document.getElementById('slot'), document.getElementById('bubble'));
+
+  const renderSound = () => { btnSound.textContent = Mascot.sound ? 'Звук: вкл' : 'Звук: выкл'; };
+  renderSound();
+  btnSound.addEventListener('click', () => { Mascot.sound = !Mascot.sound; renderSound(); Mascot.sfx('ok'); });
+
+  document.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
+    const act = b.dataset.act;
+    if (act === 'hello') { streak = 0; Mascot.hello(); status.innerHTML = 'Серия: <b>0</b>'; }
+    if (act === 'question') { Mascot.question(false); }
+    if (act === 'correct') {
+      streak++;
+      const title = Mascot.correct(streak, b);
+      status.innerHTML = `Серия: <b>${streak}</b> · заголовок: <b>${title}</b>`;
+    }
+    if (act === 'wrong') { streak = 0; Mascot.wrong(); status.innerHTML = 'Серия: <b>0</b>'; }
+    if (act === 'finish') {
+      const { stars, title } = Mascot.finish(Number(b.dataset.score), 10);
+      status.innerHTML = `Итог: <b>${title}</b> · звёзд: <b>${stars}</b>`;
+    }
+  }));
+})();
+</script>
+</body>
+</html>

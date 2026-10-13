@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Keep the owl mascot identical on every page.
+"""Keep the mascot identical on every page.
 
-Source of truth: templates/owl-mascot.html — the blocks between the OWL:CSS, OWL:SVG
-and OWL:JS markers. Every game (games/*/index.html) must contain all three blocks.
+Source of truth: templates/mascot.html — the blocks between the MASCOT:CSS, MASCOT:SVG
+and MASCOT:JS markers. Every game (games/*/index.html) must contain all three blocks.
 
     python3 scripts/mascot.py check   # exit 1 if a page is missing a block or differs from the template
     python3 scripts/mascot.py sync    # copy the template blocks into every page that has the markers
 
-To add the owl to a new page: put empty START/END marker pairs where the blocks belong, run sync.
+To add the mascot to a new page: put empty START/END marker pairs where the blocks belong, run sync.
 """
 import pathlib
 import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TEMPLATE = ROOT / "templates" / "owl-mascot.html"
+TEMPLATE = ROOT / "templates" / "mascot.html"
 MARKERS = {
-    "CSS": ("/* ===== OWL:CSS START ===== */", "/* ===== OWL:CSS END ===== */"),
-    "SVG": ("<!-- ===== OWL:SVG START ===== -->", "<!-- ===== OWL:SVG END ===== -->"),
-    "JS": ("// ===== OWL:JS START =====", "// ===== OWL:JS END ====="),
+    "CSS": ("/* ===== MASCOT:CSS START ===== */", "/* ===== MASCOT:CSS END ===== */"),
+    "SVG": ("<!-- ===== MASCOT:SVG START ===== -->", "<!-- ===== MASCOT:SVG END ===== -->"),
+    "JS": ("// ===== MASCOT:JS START =====", "// ===== MASCOT:JS END ====="),
 }
 
 
@@ -39,7 +39,7 @@ def inner_lines(text, name):
 
 def pages():
     found = sorted(ROOT.glob("games/*/index.html"))
-    found += [p for p in [ROOT / "index.html"] if p.exists() and "OWL:SVG START" in p.read_text(encoding="utf-8")]
+    found += [p for p in [ROOT / "index.html"] if p.exists() and "MASCOT:SVG START" in p.read_text(encoding="utf-8")]
     return found
 
 
@@ -54,7 +54,7 @@ def main():
         for name in MARKERS:
             loc = find(text, name)
             if not loc:
-                print(f"MISSING  {rel}: no OWL:{name} block")
+                print(f"MISSING  {rel}: no MASCOT:{name} block")
                 problems += 1
                 continue
             if cmd == "sync":
@@ -62,7 +62,7 @@ def main():
                 body = "".join(f"{indent}{line}\n" if line else "\n" for line in blocks[name])
                 text = text[:a] + body + text[b:]
             elif [l.strip() for l in inner_lines(text, name)] != [l.strip() for l in blocks[name]]:
-                print(f"DIFFERS  {rel}: OWL:{name} differs from the template (run: python3 scripts/mascot.py sync)")
+                print(f"DIFFERS  {rel}: MASCOT:{name} differs from the template (run: python3 scripts/mascot.py sync)")
                 problems += 1
         if cmd == "sync":
             page.write_text(text, encoding="utf-8")
