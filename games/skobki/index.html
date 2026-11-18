@@ -53,6 +53,10 @@
   .streak.bump svg { animation: bump .45s cubic-bezier(.3, 1.6, .5, 1); }
   .streak.hot svg { filter: drop-shadow(0 0 6px rgba(255,150,0,.55)); }
   body:not([data-screen="quiz"]) .quiz-only { visibility: hidden; }
+  /* домик — на главную (галерею игр); всегда виден в левом верхнем углу */
+  .home-btn { width: 44px; height: 44px; }
+  .home-btn svg { width: 28px; height: 28px; }
+  @media (max-width: 400px) { .topbar { gap: 10px; } }
 
   /* ---------- screens ---------- */
   .screen { display: none; flex: 1; flex-direction: column; }
@@ -350,6 +354,9 @@
 
 <div class="app">
   <header class="topbar">
+    <button class="icon-btn home-btn" id="btnGallery" type="button" aria-label="На главную" title="На главную">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.2 11.3L12 3.6l8.8 7.7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.6 10.6V19a1.6 1.6 0 0 0 1.6 1.6h3.2v-5.4h3.2v5.4h3.2a1.6 1.6 0 0 0 1.6-1.6v-8.4L12 5z" fill="currentColor"/></svg>
+    </button>
     <button class="icon-btn quiz-only" id="btnQuit" type="button" aria-label="Выйти в начало" title="Выйти">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
     </button>
@@ -1310,6 +1317,10 @@ const Mascot = (() => {
   $('#btnAgain').addEventListener('click', () => startGame());
   $('#btnHome').addEventListener('click', goStart);
   btnNext.addEventListener('click', next);
+  $('#btnGallery').addEventListener('click', () => {
+    if (current === 'quiz' && !confirm('Закончить игру и выйти на главную?')) return;
+    location.href = '../../';
+  });
   $('#btnQuit').addEventListener('click', () => {
     if (confirm('Закончить игру и вернуться в начало?')) goStart();
   });
