@@ -10,6 +10,7 @@
 | [Слова-друзья](https://arkhamvm.github.io/kids-learning-games/games/sinonimy/) | Синонимы | 2 |
 | [Английский алфавит](https://arkhamvm.github.io/kids-learning-games/games/alphabet/) | Английские буквы: звуки и русская транскрипция | 2 |
 | [Устный счёт](https://arkhamvm.github.io/kids-learning-games/games/ustnyj-schet/) | Сложение и вычитание до 100 (2–3 числа, ввод ответа), таблица умножения | 2–3 |
+| [Скобки](https://arkhamvm.github.io/kids-learning-games/games/skobki/) | Выражения со скобками: 10 − (9 − 5), до 20 и до 100 (выбор и ввод ответа) | 2 |
 
 ## Запуск локально
 
@@ -40,6 +41,7 @@ python3 scripts/mascot.py check
 node scripts/touch-test.mjs games/sinonimy/
 node scripts/touch-test.mjs games/alphabet/
 node scripts/touch-test.mjs games/ustnyj-schet/
+node scripts/touch-test.mjs games/skobki/
 ```
 
 Котёнок: https://arkhamvm.github.io/kids-learning-games/templates/mascot.html
