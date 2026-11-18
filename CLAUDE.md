@@ -89,7 +89,8 @@ README.md                   list of games — add a row for every new game
 Screens `#screenStart`, `#screenQuiz`, `#screenEnd` with `body[data-screen=start|quiz|end]`;
 per-screen mascot slot + speech bubble; `#btnStart`, `#options .opt` (answer buttons, `.correct` /
 `.wrong` / `.dim`), `#sheet.show` + `#btnNext`, `#statScore` (`"7/10"`), `#btnAgain`, `#btnQuit`
-(with `confirm()`), `#btnSound` (`aria-pressed`), `#progress`, `#streakNum`, `#mascot`.
+(with `confirm()`), `#btnGallery` (house icon, first item of `.topbar`, always visible: back to the gallery
+`../../`, with `confirm()` only during the quiz), `#btnSound` (`aria-pressed`), `#progress`, `#streakNum`, `#mascot`.
 The sheet sits inside `.sheet-dock` (fixed, `overflow: hidden`, `pointer-events: none`).
 Optional learn screen: `#btnLearn` on the start screen → `#screenLearn` (`body[data-screen=learn]`) with
 `.tile` buttons and `#btnBack`; the touch test exercises it when present (and requires a sound on tile tap

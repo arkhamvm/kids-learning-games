@@ -8,7 +8,7 @@
 //
 // Needs Node >= 22 and google-chrome (or set CHROME=/path/to/chrome). Works for any game built on
 // the standard skeleton: #btnStart, #options .opt, #sheet, #btnNext, #statScore, #btnAgain,
-// #btnQuit, #btnSound, #mascot, body[data-screen=start|quiz|end]; optional #btnLearn → learn screen
+// #btnQuit, #btnGallery (home → ../../), #btnSound, #mascot, body[data-screen=start|quiz|end]; optional #btnLearn → learn screen
 // with .tile buttons and #btnBack; optional typed answers: #keypad [data-key] (digits, "ok") + #answerBox
 // (.correct / .wrong after submit). Learn tiles must play a sound only if <body data-learn-sound>.
 import http from 'node:http';
@@ -262,7 +262,24 @@ for (const [W, H] of SIZES) {
   await tapSel('#btnQuit');
   await sleep(600);
   check('tap quit → confirm → start', dialogs.length === 1 && (await screen()) === 'start');
+  const home = await ev(`(() => {
+    const b = document.querySelector('#btnGallery');
+    if (!b) return null;
+    const r = b.getBoundingClientRect();
+    const others = [...document.querySelectorAll('.topbar > *')].filter((e) => e !== b && getComputedStyle(e).visibility !== 'hidden');
+    const app = document.querySelector('.topbar').getBoundingClientRect();
+    return { left: Math.round(r.left - app.left), top: Math.round(r.top), w: Math.round(r.width), visible: getComputedStyle(b).visibility !== 'hidden',
+      leftmost: others.every((e) => e.getBoundingClientRect().left > r.right) };
+  })()`);
+  check('home button visible in the top-left corner', !!home && home.visible && home.leftmost && home.left <= 2 && home.top < 30 && home.w >= 30,
+    JSON.stringify(home));
   check('no JS errors', errors.length === 0, errors.join(' | '));
+  if (home) {
+    await tapSel('#btnGallery');
+    await sleep(800);
+    const at = await ev('location.pathname');
+    check('tap home → gallery', at === '/' || at === '/index.html', at);
+  }
 
   console.log(`\n=== ${PAGE} @ ${W}x${H}, touch ===`);
   console.log(results.join('\n'));
